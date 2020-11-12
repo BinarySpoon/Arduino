@@ -1,83 +1,63 @@
-// Libraries Used --> //
+// Libraries Used --> 
 #include <LiquidCrystal.h> 
 #include <HCSR04.h>
-#include <Servo.h>
-#include <SoftwareSerial.h>
 
-// Pins Used --> //
+// Pins Used --> 
 #define Trig 6
 #define Echo 7
 #define MA 7
+#define Y_LED 8
 
-// Declaring Variables --> //
+// Declaring Variables --> 
 int measurements[MA];
 int RANGE_START = 30;
 int RANGE_FINISH = 150;
-int Front_D = 0;
-int Left_D = 0;
-int Right_D = 0;
 int closest_angle;
 int distance;
 int closest_dist = 500;
-int min_distance = 10; 
+int min_distance = 2; 
 
 // Sensor setup -->
 LiquidCrystal MyLCD(12,11,5,4,3,2);   // SETUP LCD //
-UltraSonicDistanceSensor IR_DIST_SENS(Trig, Echo);  // SETUP SENSOR //
-Servo scanner_servo; // SETUP SERVO MOTOR //
-SoftwareSerial BluetoothModule(9,8); // SETUP BLM //
+UltraSonicDistanceSensor DIST_SENS(Trig, Echo);  // SETUP SENSOR //
 
 void setup() {
-    // STARTUP LED MESSAGE //
-    scanner_servo.attach(8);
+  
+    // Startup LCD message -->
     MyLCD.begin(16,2);
     MyLCD.setCursor(0,0);
     MyLCD.print("UltraSonicDistanceSensor");
     MyLCD.setCursor(0, 1);
-    MyLCD.print("!!(( ^ . ^ ))!!");
+    MyLCD.print("By AkashP");
     delay(1000);
     MyLCD.clear();
     default_State();
 
-    // SETUP SENSOR //
+    // Setup Serial --> 
     Serial.begin(115200);
-
-    byte counter = 0;   //setup byte var
-    while (counter < MA)
-    {
-        MeasureDist();
-        counter++;
-    }
 }
 
-void loop()
-{
+void loop() {  
 
-  if (BluetoothModule.available() > 0) {
-      char message = BluetoothModule.read();
-      DisplayLCD(message);
-      }
+  // Every 25ms --> 
+  delay(25);
+  int mean_distance = MeasureDist();
+  Object_Alert(mean_distance);
   
-    for (int i = RANGE_START; i < RANGE_FINISH; i++)
-    {
-      scan(i);
-    }
-
-    for (int i = RANGE_FINISH; i > RANGE_START; i--)
-    {
-      scan(i);
-    }
-    closest_dist = 500;
+  // Update Distance To LCD --> 
+  MyLCD.setCursor(6,1);
+  MyLCD.print(mean_distance);
+    
+  // Update Distance To Serial --> 
+  Serial.print(mean_distance);
+  Serial.print("\t");
+  
 }
 
-void default_State() 
-{
-  MyLCD.setCursor(0,0);
-  MyLCD.setCursor(3,0);
-  MyLCD.print("DISTANCE");
-}
+// Additional Functions --> 
+// ------------------------ 
 
-// Measure Distance --> //
+// Mesaure Distance --> 
 int MeasureDist() {
     static int measurements[MA]; //Static ints persists even after loop is over //
     long mean = 0;
@@ -86,7 +66,7 @@ int MeasureDist() {
         mean += measurements[i];
     }
 
-    measurements[MA-1] = IR_DIST_SENS.measureDistanceCm();
+    measurements[MA-1] = DIST_SENS.measureDistanceCm();
     for (int i = 0; i < MA; i++)
     {
       mean += measurements[i];
@@ -96,45 +76,35 @@ int MeasureDist() {
 
 }
 
-// Depth Scanner --> //
-void scan(int angle)
-{
-  scanner_servo.write(angle);
-  distance = MeasureDist();
-  MyLCD.setCursor(6,1);
-  MyLCD.print(distance);
-  delay(20);
-
-  // PRINT TO SERIAL LOG //
-  Serial.print(distance);
-  Serial.print("\t");
-  Serial.print(closest_dist);
-  Serial.print("\t");
-  Serial.println(angle);
-
-  if (closest_dist > distance && distance != 1)
+// Object Alert --> 
+int Object_Alert(int object_distance)
+{  
+  if (closest_dist > object_distance && object_distance != 1)
   {
-    closest_dist = distance;
-    closest_angle = angle;
+    closest_dist = object_distance;
   }
-  if (distance <= min_distance)
+  if (object_distance <= min_distance)
   {
     MyLCD.clear();
     MyLCD.setCursor(0,0);
     MyLCD.print("OBJ DETECTED!");
+    digitalWrite(Y_LED, HIGH); 
     delay(300);
+    digitalWrite(Y_LED, LOW); 
     MyLCD.clear();
   }
   else 
-  { 
+  {
     default_State();
-  } 
+  }
 
 }
 
-// Display Driver --> //
-char DisplayLCD(char message) {
-  MyLCD.clear();
+// Default_State --> 
+void default_State() 
+{
   MyLCD.setCursor(0,0);
-  MyLCD.print(message);
+  MyLCD.setCursor(3,0);
+  MyLCD.print("DISTANCE");
 }
+
