@@ -9,20 +9,15 @@
 #define Y_LED 8
 
 // Declaring Variables --> 
-int measurements[MA];
-int RANGE_START = 30;
-int RANGE_FINISH = 150;
-int closest_angle;
-int distance;
-int closest_dist = 500;
-int min_distance = 2; 
+static int measurements[MA]; //Static ints persists even after loop is over //
+int closest_dist;
+int min_distance = 3; 
 
 // Sensor setup -->
 LiquidCrystal MyLCD(12,11,5,4,3,2);   // SETUP LCD //
 UltraSonicDistanceSensor DIST_SENS(Trig, Echo);  // SETUP SENSOR //
 
 void setup() {
-  
     // Startup LCD message -->
     MyLCD.begin(16,2);
     MyLCD.setCursor(0,0);
@@ -59,19 +54,17 @@ void loop() {
 
 // Mesaure Distance --> 
 int MeasureDist() {
-    static int measurements[MA]; //Static ints persists even after loop is over //
     long mean = 0;
     for (int i = 0; i < MA; i++)
     {
         mean += measurements[i];
     }
 
-    measurements[MA-1] = DIST_SENS.measureDistanceCm();
+    measurements[MA-1] = DIST_SENS.measureDistanceCm();    
     for (int i = 0; i < MA; i++)
     {
-      mean += measurements[i];
-    }
-    
+        mean += measurements[i];
+    }    
     return mean /= MA;
 
 }
@@ -107,4 +100,3 @@ void default_State()
   MyLCD.setCursor(3,0);
   MyLCD.print("DISTANCE");
 }
-
